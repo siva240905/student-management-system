@@ -1,0 +1,18 @@
+[
+    {
+        "id": 1,
+        "name": "selva",
+        "reg_no": "23",
+        "department": "cs",
+        "year": "2",
+        "email": "selva@gmail.com"
+    },
+    {
+        "id": 2,
+        "name": "gaja",
+        "reg_no": "62",
+        "department": "cs",
+        "year": "3",
+        "email": "gaja@gmail.com"
+    }
+]

@@ -74,26 +74,23 @@ Student Management System
 </tr>
 
 </thead>
-
 <tbody id="studentTable">
 
 {% for s in students %}
 
 <tr>
-<td>{{s[0]}}</td>
-<td>{{s[1]}}</td>
-<td>{{s[2]}}</td>
-<td>{{s[3]}}</td>
-<td>{{s[4]}}</td>
-<td>{{s[5]}}</td>
+<td>{{s.id}}</td>
+<td>{{s.name}}</td>
+<td>{{s.reg_no}}</td>
+<td>{{s.department}}</td>
+<td>{{s.year}}</td>
+<td>{{s.email}}</td>
 
 <td>
 
-<a href="/edit/{{s[0]}}" class="btn btn-warning btn-sm">
-Edit
-</a>
+<a href="/edit/{{s.id}}" class="btn btn-warning btn-sm">Edit</a>
 
-<a href="/delete/{{s[0]}}" class="btn btn-danger btn-sm"
+<a href="/delete/{{s.id}}" class="btn btn-danger btn-sm"
 onclick="return confirm('Delete this student?')">
 Delete
 </a>
@@ -105,7 +102,6 @@ Delete
 {% endfor %}
 
 </tbody>
-
 </table>
 
 </div>

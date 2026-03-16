@@ -62,14 +62,12 @@ Student Management System
 <table class="table table-dark table-bordered table-hover">
 
 <thead>
-
 <tr>
 <th>Name</th>
 <th>Register No</th>
 <th>Date</th>
 <th>Status</th>
 </tr>
-
 </thead>
 
 <tbody id="attendanceTable">
@@ -77,18 +75,18 @@ Student Management System
 {% for r in records %}
 
 <tr>
-<td>{{r[0]}}</td>
-<td>{{r[1]}}</td>
-<td>{{r[2]}}</td>
-<td>
+<td>{{r.name}}</td>
+<td>{{r.reg_no}}</td>
+<td>{{r.date}}</td>
 
-{% if r[3] == "Present" %}
+<td>
+{% if r.status == "Present" %}
 <span class="badge bg-success">Present</span>
 {% else %}
 <span class="badge bg-danger">Absent</span>
 {% endif %}
-
 </td>
+
 </tr>
 
 {% endfor %}

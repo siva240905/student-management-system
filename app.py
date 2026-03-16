@@ -1,17 +1,33 @@
+import json
+import os
 from flask import Flask, render_template, request, redirect, session
-import mysql.connector
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="root",
-    database="student_db"
-)
+STUDENT_FILE = "students.json"
+ATTENDANCE_FILE = "attendance.json"
 
-cursor = db.cursor()
+
+# --------------------------
+# JSON FUNCTIONS
+# --------------------------
+
+def load_data(file):
+    if not os.path.exists(file):
+        return []
+    with open(file, "r") as f:
+        return json.load(f)
+
+
+def save_data(file, data):
+    with open(file, "w") as f:
+        json.dump(data, f, indent=4)
+
+
+# --------------------------
+# LOGIN
+# --------------------------
 
 @app.route('/', methods=['GET','POST'])
 def login():
@@ -26,23 +42,26 @@ def login():
             return redirect('/dashboard')
 
     return render_template("login.html")
+
+
+# --------------------------
+# DASHBOARD
+# --------------------------
+
 @app.route('/dashboard')
 def dashboard():
 
-    cursor.execute("SELECT COUNT(*) FROM students")
-    total_students = cursor.fetchone()[0]
+    students = load_data(STUDENT_FILE)
+    attendance = load_data(ATTENDANCE_FILE)
 
-    cursor.execute("SELECT COUNT(*) FROM attendance")
-    total_attendance = cursor.fetchone()[0]
+    total_students = len(students)
+    total_attendance = len(attendance)
 
-    cursor.execute("SELECT COUNT(*) FROM attendance WHERE status='Present'")
-    present = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM attendance WHERE status='Absent'")
-    absent = cursor.fetchone()[0]
+    present = sum(1 for a in attendance if a["status"] == "Present")
+    absent = sum(1 for a in attendance if a["status"] == "Absent")
 
     if total_attendance > 0:
-        attendance_percent = round((present/total_attendance)*100,2)
+        attendance_percent = round((present / total_attendance) * 100, 2)
     else:
         attendance_percent = 0
 
@@ -54,104 +73,147 @@ def dashboard():
         present=present,
         absent=absent
     )
+
+
+# --------------------------
+# ADD STUDENT
+# --------------------------
+
 @app.route('/add_student', methods=['GET','POST'])
 def add_student():
+
     if request.method == 'POST':
-        name = request.form['name']
-        reg = request.form['reg']
-        dept = request.form['dept']
-        year = request.form['year']
-        email = request.form['email']
 
-        sql = "INSERT INTO students (name,reg_no,department,year,email) VALUES (%s,%s,%s,%s,%s)"
-        val = (name,reg,dept,year,email)
+        students = load_data(STUDENT_FILE)
 
-        cursor.execute(sql,val)
-        db.commit()
+        new_student = {
+            "id": len(students) + 1,
+            "name": request.form['name'],
+            "reg_no": request.form['reg'],
+            "department": request.form['dept'],
+            "year": request.form['year'],
+            "email": request.form['email']
+        }
+
+        students.append(new_student)
+
+        save_data(STUDENT_FILE, students)
 
         return redirect('/students')
 
     return render_template('add_student.html')
 
+
+# --------------------------
+# VIEW STUDENTS
+# --------------------------
+
 @app.route('/students')
 def students():
-    cursor.execute("SELECT * FROM students")
-    data = cursor.fetchall()
-    return render_template('students.html', students=data)
+
+    students = load_data(STUDENT_FILE)
+
+    return render_template('students.html', students=students)
+
+
+# --------------------------
+# DELETE STUDENT
+# --------------------------
+
 @app.route('/delete/<int:id>')
 def delete_student(id):
 
-    sql = "DELETE FROM students WHERE id=%s"
-    val = (id,)
+    students = load_data(STUDENT_FILE)
 
-    cursor.execute(sql,val)
-    db.commit()
+    students = [s for s in students if s["id"] != id]
+
+    save_data(STUDENT_FILE, students)
 
     return redirect('/students')
+
+
+# --------------------------
+# EDIT STUDENT
+# --------------------------
+
 @app.route('/edit/<int:id>', methods=['GET','POST'])
 def edit_student(id):
 
+    students = load_data(STUDENT_FILE)
+
+    student = next((s for s in students if s["id"] == id), None)
+
     if request.method == 'POST':
 
-        name = request.form['name']
-        reg = request.form['reg']
-        dept = request.form['dept']
-        year = request.form['year']
-        email = request.form['email']
+        student["name"] = request.form['name']
+        student["reg_no"] = request.form['reg']
+        student["department"] = request.form['dept']
+        student["year"] = request.form['year']
+        student["email"] = request.form['email']
 
-        sql = """UPDATE students 
-                 SET name=%s, reg_no=%s, department=%s, year=%s, email=%s 
-                 WHERE id=%s"""
-
-        val = (name,reg,dept,year,email,id)
-
-        cursor.execute(sql,val)
-        db.commit()
+        save_data(STUDENT_FILE, students)
 
         return redirect('/students')
 
-    sql = "SELECT * FROM students WHERE id=%s"
-    val = (id,)
+    return render_template("edit_student.html", student=student)
 
-    cursor.execute(sql,val)
 
-    student = cursor.fetchone()
-
-    return render_template("edit_student.html",student=student)
+# --------------------------
+# MARK ATTENDANCE
+# --------------------------
 
 @app.route('/attendance', methods=['GET','POST'])
 def attendance():
 
+    students = load_data(STUDENT_FILE)
+
     if request.method == 'POST':
-        student_id = request.form['student_id']
-        date = request.form['date']
-        status = request.form['status']
 
-        sql = "INSERT INTO attendance (student_id,date,status) VALUES (%s,%s,%s)"
-        val = (student_id,date,status)
+        attendance = load_data(ATTENDANCE_FILE)
 
-        cursor.execute(sql,val)
-        db.commit()
+        new_record = {
+            "student_id": request.form['student_id'],
+            "date": request.form['date'],
+            "status": request.form['status']
+        }
 
-        return redirect('/attendance')
+        attendance.append(new_record)
 
-    cursor.execute("SELECT * FROM students")
-    students = cursor.fetchall()
+        save_data(ATTENDANCE_FILE, attendance)
+
+        return redirect('/view_attendance')
 
     return render_template("attendance.html", students=students)
+
+
+# --------------------------
+# VIEW ATTENDANCE
+# --------------------------
+
 @app.route('/view_attendance')
 def view_attendance():
 
-    sql = """
-    SELECT students.name, students.reg_no, attendance.date, attendance.status
-    FROM attendance
-    JOIN students ON students.id = attendance.student_id
-    """
+    students = load_data(STUDENT_FILE)
+    attendance = load_data(ATTENDANCE_FILE)
 
-    cursor.execute(sql)
+    records = []
 
-    data = cursor.fetchall()
+    for a in attendance:
+        for s in students:
+            if str(s["id"]) == str(a["student_id"]):
+                records.append({
+                    "name": s["name"],
+                    "reg_no": s["reg_no"],
+                    "date": a["date"],
+                    "status": a["status"]
+                })
 
-    return render_template("view_attendance.html", records=data)
+    return render_template("view_attendance.html", records=records)
+
+
+# --------------------------
+# RUN SERVER
+# --------------------------
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)

@@ -75,8 +75,8 @@ color:white;
 
 {% for s in students %}
 
-<option value="{{s[0]}}">
-{{s[1]}} ({{s[2]}})
+<option value="{{s.id}}">
+{{s.name}} ({{s.reg_no}})
 </option>
 
 {% endfor %}
